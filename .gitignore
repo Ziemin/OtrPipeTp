@@ -12,3 +12,8 @@ CMakeCache.txt
 pipesTpService
 *.service
 *.swo
+*.xml
+install_manifest.txt
+pipe_adaptor.cpp
+pipe_adaptor.h
+build
