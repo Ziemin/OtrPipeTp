@@ -14,6 +14,7 @@ pipesTpService
 *.swo
 *.xml
 install_manifest.txt
-pipe_adaptor.cpp
-pipe_adaptor.h
+pipeadaptor.cpp
+pipeadaptor.h
 build
+*.moc*

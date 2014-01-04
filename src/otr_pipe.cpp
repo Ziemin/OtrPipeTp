@@ -3,7 +3,9 @@
 #include <TelepathyQt/Constants>
 
 #include "otr_pipe.hpp"
-#include "pipe_adaptor.h"
+#include "pipeadaptor.h"
+
+using namespace Tp;
 
 namespace consts {
 
@@ -14,7 +16,8 @@ namespace consts {
 
 
 OtrPipe::OtrPipe() 
-: Pipe(consts::TP_QT_PIPE_NAME_OTR, QStringList() << TP_QT_IFACE_CHANNEL_TYPE_TEXT) 
+: Pipe(consts::TP_QT_PIPE_NAME_OTR,
+        RequestableChannelClassList() << RequestableChannelClassSpec::textChat().bareClass()) 
 {
     new PipeAdaptor(this);
 }

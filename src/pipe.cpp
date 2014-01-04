@@ -1,8 +1,10 @@
 #include "pipe.hpp"
 
-Pipe::Pipe(QString name, QStringList channelTypes) 
+using namespace Tp;
+
+Pipe::Pipe(QString name, const Tp::RequestableChannelClassList &reqChans) 
     : channelName(name),
-    channelTypes(channelTypes) 
+    reqChans(reqChans) 
 {
 
 }
@@ -11,6 +13,7 @@ QString Pipe::name() const {
     return channelName;
 }
 
-QStringList Pipe::supportedChannelTypes() const {
-    return channelTypes;
+RequestableChannelClassList Pipe::RequestableChannelClasses() const {
+
+    return reqChans;
 }

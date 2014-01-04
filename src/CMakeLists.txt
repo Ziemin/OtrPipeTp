@@ -19,37 +19,31 @@ find_library(TELEPATHY_QT5_SERVICE_LIBRARIES telepathy-qt5-service)
 
 include_directories(${TELEPATHY_QT5_INCLUDE_DIRS})
 
-set(OtrPipeTp_SOURCE_DIR
-    ${OtrPipeTp_SOURCE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.Telepathy.Pipe.xml
-    )
-
-qt5_generate_dbus_interface(pipe.hpp)
-
-set(PIPE_INTERFACE_FILE "org.freedesktop.Telepathy.Pipe.xml")
-execute_process(COMMAND qdbuscpp2xml pipe.hpp 
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    OUTPUT_VARIABLE XML_FILE)
-file(WRITE ${PIPE_INTERFACE_FILE} ${XML_FILE})
-
-execute_process(COMMAND qdbusxml2cpp -a pipe_adaptor -c PipeAdaptor ${PIPE_INTERFACE_FILE}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set(PIPE_INTERFACE_FILE ${OtrPipeTp_SOURCE_DIR}/interfaces/org.freedesktop.Telepathy.Pipe.xml)
 
 #Temporary, could not find such variable
-set(DBUS_INTERFACES_INSTALL_DIR /usr/share/dbus-1/interfaces)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PIPE_INTERFACE_FILE} DESTINATION ${DBUS_INTERFACES_INSTALL_DIR})
+set(DBUS_INTERFACES_INSTALL_DIR share/dbus-1/interfaces)
+install(FILES ${PIPE_INTERFACE_FILE} DESTINATION ${DBUS_INTERFACES_INSTALL_DIR})
 
-add_library(OtrPipe STATIC
+set(OtrPipe_SRCS
     pipe.cpp
     otr_pipe.cpp
-    pipe_adaptor.cpp
-    )
+)
+
+qt5_add_dbus_adaptor(
+    OtrPipe_SRCS
+    ${PIPE_INTERFACE_FILE}
+    pipe.hpp
+    Pipe
+)
+
+add_library(OtrPipe STATIC ${OtrPipe_SRCS})
 
 qt5_use_modules(OtrPipe Core DBus Xml Network)
 target_link_libraries(OtrPipe ${TELEPATHY_QT5_LIBRARIES})
 target_link_libraries(OtrPipe ${TELEPATHY_QT5_SERVICE_LIBRARIES})
 
-add_executable(otrPipe-telepathy main.cpp)
-target_link_libraries(otrPipe-telepathy OtrPipe)
+add_executable(telepathy-pipes-otr main.cpp)
+target_link_libraries(telepathy-pipes-otr OtrPipe)
 
-install(TARGETS otrPipe-telepathy DESTINATION ${EXEC_DIR})
+install(TARGETS telepathy-pipes-otr DESTINATION lib)
