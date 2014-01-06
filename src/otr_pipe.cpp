@@ -25,8 +25,12 @@ OtrPipe::OtrPipe()
 void OtrPipe::registerObject() {
 
     QDBusConnection dbusConnection = QDBusConnection::sessionBus();
-    dbusConnection.registerObject(consts::TP_QT_PIPE_OTR_OBJECT, this);
-    dbusConnection.registerService(consts::TP_QT_PIPE_OTR_SERVICE);
+    if(!dbusConnection.registerService(consts::TP_QT_PIPE_OTR_SERVICE) ||
+            !dbusConnection.registerObject(consts::TP_QT_PIPE_OTR_OBJECT, this)) {
+
+        qFatal("Otr Pipe could not be registered");
+        QCoreApplication::exit(1);
+    }
 }
 
 QDBusObjectPath OtrPipe::createPipeChannel(QDBusObjectPath channelObject) {
