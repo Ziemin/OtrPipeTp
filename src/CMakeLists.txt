@@ -46,4 +46,4 @@ target_link_libraries(OtrPipe ${TELEPATHY_QT5_SERVICE_LIBRARIES})
 add_executable(telepathy-pipes-otr main.cpp)
 target_link_libraries(telepathy-pipes-otr OtrPipe)
 
-install(TARGETS telepathy-pipes-otr DESTINATION lib)
+install(TARGETS telepathy-pipes-otr DESTINATION lib/telepathy)
