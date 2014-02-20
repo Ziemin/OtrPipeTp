@@ -7,17 +7,11 @@
 
 using namespace Tp;
 
-namespace consts {
-
-    const QString TP_QT_PIPE_NAME_OTR = "Otr";
-    const QString TP_QT_PIPE_OTR_SERVICE = "org.freedesktop.Telepathy.Pipe." + TP_QT_PIPE_NAME_OTR;
-    const QString TP_QT_PIPE_OTR_OBJECT = "/org/freedesktop/Telepathy/Pipe/" + TP_QT_PIPE_NAME_OTR;
-}
-
 
 OtrPipe::OtrPipe() 
-: Pipe(consts::TP_QT_PIPE_NAME_OTR,
-        RequestableChannelClassList() << RequestableChannelClassSpec::textChat().bareClass()) 
+: 
+    Pipe(consts::TP_QT_PIPE_NAME_OTR, data::REQUESTABLE_CHANNELS),
+    cm(QDBusConnection::sessionBus())
 {
     new PipeAdaptor(this);
 }
@@ -35,4 +29,10 @@ void OtrPipe::registerObject() {
 
 QDBusObjectPath OtrPipe::createPipeChannel(QDBusObjectPath channelObject) {
 
+    SharedPtr<OtrConnection> connection = cm.getConnection();
+    Tp::DBusError error;
+    BaseChannelPtr chanPtr = connection->createChannel(channelObject.path(), 0, 0, 0, false, &error);
+
+    if(chanPtr) return QDBusObjectPath(chanPtr->objectPath());
+    else return QDBusObjectPath();
 }

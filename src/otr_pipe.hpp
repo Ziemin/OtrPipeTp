@@ -1,5 +1,6 @@
 #include <QtDBus>
 #include "pipe.hpp"
+#include "connections.hpp"
 
 class OtrPipe : public Pipe {
 
@@ -9,5 +10,8 @@ class OtrPipe : public Pipe {
 
     public Q_SLOTS:
         virtual QDBusObjectPath createPipeChannel(QDBusObjectPath channelObject);
+
+    private:
+        OtrConnectionManager cm;
 
 };
