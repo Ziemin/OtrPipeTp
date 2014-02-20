@@ -33,6 +33,7 @@ QDBusObjectPath OtrPipe::createPipeChannel(QDBusObjectPath channelObject) {
     Tp::DBusError error;
     BaseChannelPtr chanPtr = connection->createChannel(channelObject.path(), 0, 0, 0, false, &error);
 
+    qDebug() << "OtrPipe::createPipeChannel: returning channel at: " << chanPtr->objectPath();
     if(chanPtr) return QDBusObjectPath(chanPtr->objectPath());
-    else return QDBusObjectPath();
+    else return QDBusObjectPath("");
 }

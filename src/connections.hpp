@@ -55,10 +55,10 @@ class OtrConnection : public BaseConnection {
                 const QString &channelType, uint /* targetHandleType */, uint /* targetHandle */, Tp::DBusError *error) 
         {
             QString chanObjectPath = channelType;
-            uint lastSlash = chanObjectPath.lastIndexOf("/", 0);
+            uint lastSlash = chanObjectPath.lastIndexOf('/');
             QString conObjectPath = chanObjectPath.left(lastSlash);
             QString conBusName = conObjectPath.right(conObjectPath.length()-1);
-            conBusName.replace("/", ".");
+            conBusName.replace('/', '.');
             qDebug() << "Creating otr channel for channel at: " << chanObjectPath
                 << " from connection: (" << conBusName << ", " << conObjectPath << ")";
 
@@ -71,16 +71,18 @@ class OtrConnection : public BaseConnection {
 
             ChannelPtr underChan = Channel::create(pipedCon, chanObjectPath, QVariantMap());
 
-            PendingReady *pendingReady = underChan->becomeReady(Connection::FeatureCore); 
+            if(!underChan || !pipedCon) {
+                qWarning() << "Returning empty channel from dummy connection in otr pipe";
+                error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Cannot create channel to pipe with otr");
+                return BaseChannelPtr();
+            }
+
+            PendingReady *pendingReady = underChan->becomeReady(Channel::FeatureCore); 
             {
                 QEventLoop loop;
                 QObject::connect(pendingReady, &Tp::PendingOperation::finished,
                         &loop, &QEventLoop::quit);
                 loop.exec();
-            }
-            if(!underChan || pipedCon) {
-                error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Cannot create channel to pipe with otr");
-                return BaseChannelPtr();
             }
             return BaseChannelPtr(new OtrChannel(QDBusConnection::sessionBus(), this, underChan));
         }
@@ -119,13 +121,18 @@ class OtrProtocol : public BaseProtocol {
         BaseConnectionPtr createConnectionCb(
                 const QVariantMap & /* parameters */, Tp::DBusError * /* error */) 
         {
+            qDebug() << "Creating connection";
             if(!dumbConnectionPtr) {
 
+                qDebug() << "Building new connection";
                 BaseConnectionPtr newCon(new OtrConnection(QDBusConnection::sessionBus()));
                 dumbConnectionPtr = newCon;
                 return newCon;
-            } else 
+            } else {
+
+                qDebug() << "Returning old connection";
                 return dumbConnectionPtr.toStrongRef();
+            }
         }
 
     private:
@@ -147,19 +154,36 @@ class OtrConnectionManager : public BaseConnectionManager {
             }
             Tp::DBusError error;
             connectionPtr = otrProtocol->createConnection(QVariantMap(), &error);
+            if(error.isValid()) {
+                qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();
+                return;
+            }
+            connectionPtr->registerObject(&error);
+            if(error.isValid()) {
+                qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();
+            }
         }
 
         SharedPtr<OtrConnection> getConnection() {
             if(!connectionPtr) {
                 Tp::DBusError error;
                 connectionPtr = otrProtocol->createConnection(QVariantMap(), &error);
+                if(error.isValid()) {
+                    qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();
+                    return SharedPtr<OtrConnection>();
+                }
+                connectionPtr->registerObject(&error);
+                if(error.isValid()) {
+                    qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();
+                    return SharedPtr<OtrConnection>();
+                }
             }
-            return SharedPtr<OtrConnection>::dynamicCast(connectionPtr.toStrongRef());
+            return SharedPtr<OtrConnection>::dynamicCast(connectionPtr);
         }
 
     private:
         BaseProtocolPtr otrProtocol;
-        WeakPtr<BaseConnection> connectionPtr;
+        BaseConnectionPtr connectionPtr;
 };
 
 

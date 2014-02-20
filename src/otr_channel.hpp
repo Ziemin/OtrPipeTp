@@ -79,6 +79,10 @@ class OtrChannel : public Tp::BaseChannel {
             connect(&chanIface, &Client::ChannelInterface::Closed, this, [this]{ emit this->closed(); });
         }
 
+        virtual ~OtrChannel() {
+            if(underChan && underChan->isValid()) underChan->requestClose();
+        }
+
     private:
         void messageAcknowledgedCb(QString token) {
 
