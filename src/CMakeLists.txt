@@ -2,6 +2,7 @@ find_package(Qt5Core REQUIRED)
 find_package(Qt5DBus REQUIRED)
 find_package(Qt5Xml REQUIRED)
 find_package(Qt5Network REQUIRED)
+find_package(LibOTR REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Core_EXECUTABLE_COMPILE_FLAGS}")
 
@@ -12,6 +13,7 @@ add_definitions(${Qt5DBus_DEFINITIONS})
 
 include_directories(${Qt5Core_INCLUDE_DIRS})
 include_directories(${Qt5DBus_INCLUDE_DIRS})
+include_directories(${LIBOTR_INCLUDE_DIR})
 
 find_path(TELEPATHY_QT5_INCLUDE_DIRS TelepathyQt PATHS /usr/include/telepathy-qt5)
 find_library(TELEPATHY_QT5_LIBRARIES telepathy-qt5)
@@ -42,6 +44,7 @@ add_library(OtrPipe STATIC ${OtrPipe_SRCS})
 qt5_use_modules(OtrPipe Core DBus Xml Network)
 target_link_libraries(OtrPipe ${TELEPATHY_QT5_LIBRARIES})
 target_link_libraries(OtrPipe ${TELEPATHY_QT5_SERVICE_LIBRARIES})
+target_link_libraries(OtrPipe ${LIBOTR_LIBRARY})
 
 add_executable(telepathy-pipes-otr main.cpp)
 target_link_libraries(telepathy-pipes-otr OtrPipe)

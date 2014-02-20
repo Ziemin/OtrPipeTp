@@ -2,6 +2,10 @@
 #include <QtDBus>
 #include <TelepathyQt/Constants>
 
+extern "C" {
+#include <libotr/proto.h>
+}
+
 #include "otr_pipe.hpp"
 #include "pipeadaptor.h"
 
@@ -13,6 +17,7 @@ OtrPipe::OtrPipe()
     Pipe(consts::TP_QT_PIPE_NAME_OTR, data::REQUESTABLE_CHANNELS),
     cm(QDBusConnection::sessionBus())
 {
+    OTRL_INIT; // initializing libotr
     new PipeAdaptor(this);
 }
 
