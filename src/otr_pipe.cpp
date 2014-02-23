@@ -11,11 +11,14 @@ extern "C" {
 
 using namespace Tp;
 
+namespace consts {
+    const std::string PIPE_OTR_ROOT_DIRECTORY = "telepathy-pipes/pipe_otr";
+}
 
 OtrPipe::OtrPipe() 
 : 
     Pipe(consts::TP_QT_PIPE_NAME_OTR, data::REQUESTABLE_CHANNELS),
-    cm(QDBusConnection::sessionBus())
+    otrApp(consts::PIPE_OTR_ROOT_DIRECTORY), cm(QDBusConnection::sessionBus(), otrApp)
 {
     OTRL_INIT; // initializing libotr
     new PipeAdaptor(this);

@@ -9,8 +9,11 @@
 #include <TelepathyQt/ChannelFactory>
 #include <TelepathyQt/ContactFactory>
 #include <TelepathyQt/PendingReady>
+#include <TelepathyQt/ConnectionInterfaceContactsInterface>
+#include <tuple>
 
 #include "otr_channel.hpp"
+#include "otr_encryption.hpp"
 
 using namespace Tp;
 
@@ -29,15 +32,21 @@ namespace data {
         RequestableChannelClassList() << RequestableChannelClassSpec::textChat().bareClass();
 }
 
+namespace utils {
+
+    std::tuple<std::string, std::string, std::string> getConversationIdsFor(ConnectionPtr connection, uint targetHandle);
+}
+
 class OtrConnection : public BaseConnection {
 
     public:
-        OtrConnection(const QDBusConnection &dbusConnection) 
+        OtrConnection(const QDBusConnection &dbusConnection, otr::OtrApp &otrApp) 
             : BaseConnection(
                     dbusConnection, 
                     consts::TP_QT_PIPE_OTR_CONNECTION_MANAGER_NAME,
                     consts::TP_QT_PIPE_OTR_PROTOCOL_NAME,
-                    QVariantMap())
+                    QVariantMap()),
+            otrApp(otrApp)
         {
             setSelfHandle(1);
 
@@ -52,7 +61,7 @@ class OtrConnection : public BaseConnection {
         // ugly for now, TODO create different version of pipable channel on dbus not using standard
         // cm/connection/protocol approach
         BaseChannelPtr createChannelCb(
-                const QString &channelType, uint /* targetHandleType */, uint /* targetHandle */, Tp::DBusError *error) 
+                const QString &channelType, uint /* targetHandleType */, uint targetHandle, Tp::DBusError *error) 
         {
             QString chanObjectPath = channelType;
             uint lastSlash = chanObjectPath.lastIndexOf('/');
@@ -84,7 +93,19 @@ class OtrConnection : public BaseConnection {
                         &loop, &QEventLoop::quit);
                 loop.exec();
             }
-            return BaseChannelPtr(new OtrChannel(QDBusConnection::sessionBus(), this, underChan));
+            try {
+                auto convIds = utils::getConversationIdsFor(pipedCon, targetHandle);
+                otr::OtrUserContext userContext = 
+                    otrApp.getUserContext(
+                        std::get<0>(convIds),
+                        std::get<1>(convIds),
+                        std::get<2>(convIds));
+
+                return BaseChannelPtr(new OtrChannel(QDBusConnection::sessionBus(), this, underChan, std::move(userContext)));
+            } catch(const std::runtime_error &re) { //  TODO special exception
+                error->set(TP_QT_ERROR_NOT_AVAILABLE, re.what());
+                return BaseChannelPtr();
+            }
         }
 
         // return nonsense handles
@@ -103,13 +124,16 @@ class OtrConnection : public BaseConnection {
             for(uint handle: handles) res << QString(handle);
             return res;
         }
+
+    private:
+        otr::OtrApp &otrApp;
 };
 
 class OtrProtocol : public BaseProtocol {
 
     public:
-        OtrProtocol(const QDBusConnection &dbusConnection)
-            : BaseProtocol(dbusConnection, consts::TP_QT_PIPE_OTR_PROTOCOL_NAME) 
+        OtrProtocol(const QDBusConnection &dbusConnection, otr::OtrApp &otrApp)
+            : BaseProtocol(dbusConnection, consts::TP_QT_PIPE_OTR_PROTOCOL_NAME), otrApp(otrApp)
         {
 
             setEnglishName(QLatin1String(name().toStdString().c_str()));
@@ -125,7 +149,7 @@ class OtrProtocol : public BaseProtocol {
             if(!dumbConnectionPtr) {
 
                 qDebug() << "Building new connection";
-                BaseConnectionPtr newCon(new OtrConnection(QDBusConnection::sessionBus()));
+                BaseConnectionPtr newCon(new OtrConnection(QDBusConnection::sessionBus(), otrApp));
                 dumbConnectionPtr = newCon;
                 return newCon;
             } else {
@@ -137,15 +161,16 @@ class OtrProtocol : public BaseProtocol {
 
     private:
         WeakPtr<BaseConnection> dumbConnectionPtr;
+        otr::OtrApp &otrApp;
 };
 
 class OtrConnectionManager : public BaseConnectionManager {
 
     public:
-        OtrConnectionManager(const QDBusConnection &dbusConnection)
+        OtrConnectionManager(const QDBusConnection &dbusConnection, otr::OtrApp &otrApp)
             : BaseConnectionManager(dbusConnection, consts::TP_QT_PIPE_OTR_CONNECTION_MANAGER_NAME) 
         {
-            otrProtocol = BaseProtocolPtr(new OtrProtocol(QDBusConnection::sessionBus()));
+            otrProtocol = BaseProtocolPtr(new OtrProtocol(QDBusConnection::sessionBus(), otrApp));
             addProtocol(otrProtocol);
 
             if(!registerObject()) {
@@ -158,6 +183,7 @@ class OtrConnectionManager : public BaseConnectionManager {
                 qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();
                 return;
             }
+            // have to register it myself, since new connection is created from inside this program
             connectionPtr->registerObject(&error);
             if(error.isValid()) {
                 qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();
@@ -172,6 +198,7 @@ class OtrConnectionManager : public BaseConnectionManager {
                     qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();
                     return SharedPtr<OtrConnection>();
                 }
+                // have to register it myself, since new connection is created from inside this program
                 connectionPtr->registerObject(&error);
                 if(error.isValid()) {
                     qWarning() << "Cannot create connection: " << error.name() << " -> " << error.message();

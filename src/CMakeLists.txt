@@ -28,8 +28,10 @@ set(DBUS_INTERFACES_INSTALL_DIR share/dbus-1/interfaces)
 install(FILES ${PIPE_INTERFACE_FILE} DESTINATION ${DBUS_INTERFACES_INSTALL_DIR})
 
 set(OtrPipe_SRCS
+    otr_encryption.cpp
     pipe.cpp
     otr_pipe.cpp
+    connection.cpp
 )
 
 qt5_add_dbus_adaptor(

@@ -7,15 +7,21 @@
 #include <TelepathyQt/PendingVariant>
 #include <TelepathyQt/PendingVariantMap>
 
+#include "otr_encryption.hpp"
+
 using namespace Tp;
 
 class OtrChannel : public Tp::BaseChannel {
 
     public:
-        OtrChannel(const QDBusConnection &dbusCon, BaseConnection *connection, ChannelPtr underChan) 
+        OtrChannel(const QDBusConnection &dbusCon,
+                BaseConnection *connection,
+                ChannelPtr underChan,
+                otr::OtrUserContext userContext) 
             : BaseChannel(dbusCon, connection, underChan->channelType(), underChan->targetHandle(), underChan->targetHandleType()),
             underChan(underChan),
-            chanIface(QDBusConnection::sessionBus(), underChan->busName(), underChan->objectPath())
+            chanIface(QDBusConnection::sessionBus(), underChan->busName(), underChan->objectPath()),
+            userContext(std::move(userContext))
         {
 
             pipedTextIface = underChan->interface<Client::ChannelTypeTextInterface>();
@@ -131,7 +137,6 @@ class OtrChannel : public Tp::BaseChannel {
         }
 
     private:
-
         ChannelPtr underChan;
         Client::ChannelInterface chanIface;
         Client::ChannelTypeTextInterface *pipedTextIface;
@@ -140,6 +145,8 @@ class OtrChannel : public Tp::BaseChannel {
         BaseChannelMessagesInterfacePtr messagesIface;
 
         QMap<QString, uint> pendingTokenMap;
+
+        otr::OtrUserContext userContext;
 };
 
 #endif
