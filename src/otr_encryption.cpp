@@ -5,6 +5,7 @@ extern "C" {
 #include <libotr/privkey.h>
 #include <libotr/instag.h>
 #include <libotr/proto.h>
+#include <gpg-error.h>
 }
 
 namespace otr {
@@ -15,30 +16,31 @@ namespace otr {
         static OtrApp *otrApp;
 
         // OtrlMessageAppOps related
-        static void create_privkey(void *opdata, const char *accountname, const char *protocol) {
+        static void create_privkey(void * /* opdata */, const char * /* accountname */, const char * /* protocol */) {
 
         }
 
-        static void new_fingerprint(void *opdata, OtrlUserState us,
-                const char *accountname, const char *protocol,
-                const char *username, unsigned char fingerprint[20]) 
+        static void new_fingerprint(void * /* opdata */, OtrlUserState  /* us */,
+                const char * /* accountname */, const char * /* protocol */,
+                const char * /* username */, unsigned char * /* fingerprint[20] */) 
         {
 
         }
 
-        static void write_fingerprints(void *opdata) {
+        static void write_fingerprints(void * /* opdata */) {
 
         }
 
-        static const char *account_name(void *opdata, const char *account, const char *protocol) {
+        static const char *account_name(void * /* opdata */, const char * /* account */, const char * /* protocol */) {
+
+            return "";
+        }
+
+        static void account_name_free(void * /* opdata */, const char * /* account_name */) {
 
         }
 
-        static void account_name_free(void *opdata, const char *account_name) {
-
-        }
-
-        static void create_instag(void *opdata, const char *accountname, const char *protocol) {
+        static void create_instag(void * /* opdata */, const char * /* accountname */, const char * /* protocol */) {
 
         }
     };
@@ -62,11 +64,11 @@ namespace otr {
     // --------- Otr Exceptions ----------------------------------------------------------------------------
     OtrException::OtrException(const std::string &message) : std::runtime_error(message)
     {
-
     }
             
     OtrGcryException::OtrGcryException(const std::string &message, gcry_error_t error) 
-        : OtrException(message), error(error)
+        : OtrException(message + " : " + std::string(gpg_strerror(error))), 
+        error(error)
     {
 
     }
@@ -100,12 +102,13 @@ namespace otr {
     QString OtrUserContext::encryptMessage(const QString &message) {
 
         char *newMessage = nullptr;
+        std::string stdMessage = message.toStdString();
 
         // opdata is NULL - meanwhile I don't know what it is
         gcry_error_t error = otrl_message_sending(
                 userState, &otrAppOps, nullptr, accountId.c_str(), protocolId.c_str(), 
-                recipientId.c_str(), OTRL_INSTAG_BEST, message.toStdString().c_str(), 
-                nullptr, &newMessage, OtrlFragmentPolicy::OTRL_FRAGMENT_SEND_ALL, nullptr, nullptr, nullptr);
+                recipientId.c_str(), OTRL_INSTAG_BEST, stdMessage.c_str(), 
+                nullptr, &newMessage, OtrlFragmentPolicy::OTRL_FRAGMENT_SEND_SKIP, nullptr, nullptr, nullptr);
 
         if(error) {
             otrl_message_free(newMessage);
@@ -117,21 +120,30 @@ namespace otr {
         return result;
     }
 
-    QString OtrUserContext::decryptMessage(const QString &message) {
+    std::pair<QString, MessageType>  OtrUserContext::decryptMessage(const QString &message) {
 
         char *newMessage = nullptr;
+        std::string stdMessage = message.toStdString();
 
-        gcry_error_t error = otrl_message_receiving(
+        int recResult = otrl_message_receiving(
                 userState, &otrAppOps, nullptr, accountId.c_str(), protocolId.c_str(), 
-                recipientId.c_str(), message.toStdString().c_str(), 
+                recipientId.c_str(), stdMessage.c_str(), 
                 &newMessage, nullptr, nullptr, nullptr, nullptr);
 
-        if(error) {
-            otrl_message_free(newMessage);
-            throw OtrGcryException("Cannot decyrpt message", error);
+        MessageType mesType;
+        QString resultMessage;
+        if(recResult) { // internal message
+            mesType = MessageType::PROTOCOL;
+            resultMessage = message;
+        } else if(newMessage != nullptr) {
+            mesType = MessageType::USER;
+            resultMessage = QString(newMessage);
+        } else {
+            mesType = MessageType::NON_OTR;
+            resultMessage = message;
         }
 
-        QString result(newMessage);
+        std::pair<QString, MessageType> result = std::make_pair(resultMessage, mesType);
         otrl_message_free(newMessage);
         return result;
     }

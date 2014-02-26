@@ -17,3 +17,7 @@ pipeadaptor.cpp
 pipeadaptor.h
 build
 *.moc*
+Testing
+tests/data
+CTestTestfile.cmake
+;

@@ -29,6 +29,7 @@ namespace otr {
             const gcry_error_t error;
     };
 
+    enum class MessageType { USER, PROTOCOL, NON_OTR };
 
     class OtrUserContext {
 
@@ -44,7 +45,7 @@ namespace otr {
             OtrUserContext(OtrUserContext &&other);
 
             QString encryptMessage(const QString &message);
-            QString decryptMessage(const QString &message);
+            std::pair<QString, MessageType>  decryptMessage(const QString &message);
 
         private:
             const std::string accountId;
@@ -101,12 +102,10 @@ namespace otr {
             std::string getInstanceTagsFileFor(const std::string &accountId, const std::string &protocolId) const;
             std::string getFingerprintsFileFOr(const std::string &accountId, const std::string &protocolId) const;
 
-
         private:
             const std::string otrDir;
             // simple implementation with priv_key per account
             std::map<std::pair<std::string, std::string>, AccountPtr> accounts;
-
     };
 }
 

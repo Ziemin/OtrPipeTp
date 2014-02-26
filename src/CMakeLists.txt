@@ -3,8 +3,12 @@ find_package(Qt5DBus REQUIRED)
 find_package(Qt5Xml REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(LibOTR REQUIRED)
+find_package(Libgpg_error REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Core_EXECUTABLE_COMPILE_FLAGS}")
+
+# Tell CMake to run moc when necessary:
+set(CMAKE_AUTOMOC ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -47,6 +51,7 @@ qt5_use_modules(OtrPipe Core DBus Xml Network)
 target_link_libraries(OtrPipe ${TELEPATHY_QT5_LIBRARIES})
 target_link_libraries(OtrPipe ${TELEPATHY_QT5_SERVICE_LIBRARIES})
 target_link_libraries(OtrPipe ${LIBOTR_LIBRARY})
+target_link_libraries(OtrPipe ${LIBGPG_ERROR_LIBRARY})
 
 add_executable(telepathy-pipes-otr main.cpp)
 target_link_libraries(telepathy-pipes-otr OtrPipe)
