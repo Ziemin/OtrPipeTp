@@ -99,6 +99,10 @@ namespace otr {
         other.userState = nullptr;
     }
 
+    void OtrUserContext::setOpdata(void *opdata) {
+        this->opdata = opdata;
+    }
+
     QString OtrUserContext::encryptMessage(const QString &message) {
 
         char *newMessage = nullptr;
@@ -106,7 +110,7 @@ namespace otr {
 
         // opdata is NULL - meanwhile I don't know what it is
         gcry_error_t error = otrl_message_sending(
-                userState, &otrAppOps, nullptr, accountId.c_str(), protocolId.c_str(), 
+                userState, &otrAppOps, opdata, accountId.c_str(), protocolId.c_str(), 
                 recipientId.c_str(), OTRL_INSTAG_BEST, stdMessage.c_str(), 
                 nullptr, &newMessage, OtrlFragmentPolicy::OTRL_FRAGMENT_SEND_SKIP, nullptr, nullptr, nullptr);
 
@@ -126,7 +130,7 @@ namespace otr {
         std::string stdMessage = message.toStdString();
 
         int recResult = otrl_message_receiving(
-                userState, &otrAppOps, nullptr, accountId.c_str(), protocolId.c_str(), 
+                userState, &otrAppOps, opdata, accountId.c_str(), protocolId.c_str(), 
                 recipientId.c_str(), stdMessage.c_str(), 
                 &newMessage, nullptr, nullptr, nullptr, nullptr);
 

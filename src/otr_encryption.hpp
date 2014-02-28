@@ -44,6 +44,8 @@ namespace otr {
             OtrUserContext(const OtrUserContext &other) = default;
             OtrUserContext(OtrUserContext &&other);
 
+            void setOpdata(void *opdata);
+
             QString encryptMessage(const QString &message);
             std::pair<QString, MessageType>  decryptMessage(const QString &message);
 
@@ -53,6 +55,8 @@ namespace otr {
             const std::string protocolId;
             OtrlUserState userState;
             OtrlMessageAppOps otrAppOps;
+
+            void *opdata;
     };
 
     class Account {
